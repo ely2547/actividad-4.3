@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Buscar usuarios en GitHub</title>
+    <style>
+     
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    /* Fondo degradado que cambia de color cada 5 segundos */
+    background: linear-gradient(45deg, #f06, yellow);
+    background-size: 400% 400%;
+    animation: gradient 5s ease-in-out infinite;
+}
+
+@keyframes gradient {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.logo {
+    width: 100px;
+    height: 100px;
+    /* Animación de rebote para el logo */
+    animation: bounce 1s ease-in-out infinite alternate;
+}
+
+@keyframes bounce {
+    from {
+        transform: translateY(0);
+    }
+    to {
+        transform: translateY(-20px);
+    }
+}
+
+h1 {
+    /* Animación de rebote para el título */
+    animation: bounce 1s ease-in-out infinite alternate;
+    animation-delay: 0.5s;
+}
+
+.nav {
+    list-style: none;
+    display: flex;
+}
+
+.nav li {
+    margin: 0 10px;
+}
+
+.nav a {
+    text-decoration: none;
+    color: black;
+    /* Transición de escala y opacidad para los enlaces del menú */
+    transition: transform 0.3s, opacity 0.3s;
+}
+
+.nav a:hover {
+    color: blue;
+    transform: scale(1.2);
+    opacity: 0.8;
+}
+
+.form {
+    margin: 20px 0;
+    /* Sombra para el formulario */
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.form input {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    border: 1px solid gray;
+    margin: 10px 0;
+}
+
+.form button {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    background-color: rgb(74, 74, 207);
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+.form button:hover {
+    background-color: rgb(32, 128, 3);
+}
+
+.results {
+    margin: 20px 0;
+    /* Sombra para los resultados */
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.user {
+    display: flex;
+    align-items: center;
+    margin: 10px 0;
+}
+
+.user img {
+    width: 50px;
+    height: 50px;
+    /* Borde redondeado para las imágenes de los usuarios */
+    border-radius: 50%;
+    margin-right: 10px;
+}
+
+.user a {
+    text-decoration: none;
+    color: black;
+    /* Efecto de resaltado para los nombres de los usuarios */
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.user a:hover {
+    color: white;
+    background-color: rgb(16, 66, 11);
+}
+
+.error {
+    color: red;
+}
+
+.token {
+    color: green;
+}
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <img src="logo.png" alt="Logo" class="logo">
+            <ul class="nav">
+                <li><a href="/">Inicio</a></li>
+                <li><a href="/contacto">Contacto</a></li>
+            </ul>
+        </div>
+        <div class="content">
+            <h1>Buscar usuarios en GitHub</h1>
+            <div id="app">
+                <div v-if="!loggedIn">
+                    <h2>Iniciar sesión</h2>
+                    <form class="form" @submit.prevent="login">
+                        <input type="text" v-model="username" placeholder="Nombre de usuario">
+                        <input type="password" v-model="password" placeholder="Contraseña">
+                        <button type="submit">Ingresar</button>
+                    </form>
+                    <p class="error" v-if="error">{{ error }}</p>
+                    <p class="token" v-if="token">Tu token es: {{ token }}</p>
+                </div>
+                <div v-else>
+                    <h2>Buscar usuarios</h2>
+                    <form class="form" @submit.prevent="search">
+                        <input type="text" v-model="query" placeholder="Ingresa el nombre de usuario a buscar">
+                        <button type="submit">Buscar</button>
+                    </form>
+                    <div class="results">
+                        <div v-for="user in users" class="user">
+                            <img :src="user.avatar_url" alt="Avatar">
+                            <a :href="user.html_url" target="_blank">{{ user.login }}</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios"></script>
+    <script>
+        const app = new Vue({
+            el: '#app',
+            data: {
+                username: '',
+                password: '',
+                query: '',
+                token: '',
+                users: [],
+                error: '',
+                loggedIn: false
+            },
+            methods: {
+                login() {
+                    axios.post('/login', {
+                        username: this.username,
+                        password: this.password
+                    })
+                    .then(res => {
+                        this.token = res.data.token;
+                        this.error = '';
+                        this.loggedIn = true;
+                    })
+                    .catch(err => {
+                        this.token = '';
+                        this.error = err.response.data.message;
+                        this.loggedIn = false;
+                    });
+                },
+                search() {
+                    axios.get('/search', {
+                        params: {
+                            q: this.query
+                        },
+                        headers: {
+                            Authorization: `Bearer ${this.token}`
+                        }
+                    })
+                    .then(res => {
+                        this.users = res.data.items;
+                        this.error = '';
+                    })
+                    .catch(err => {
+                        this.users = [];
+                        this.error = err.response.data.message;
+                    });
+                }
+            }
+        });
+    </script>
+</body>
+</html>
